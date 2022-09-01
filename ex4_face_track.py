@@ -35,14 +35,17 @@ class Tello(Node):
         self.ref_w = 0
 
         tello.takeoff()
-
+        
+        # Finding a face with haarcascade_frontalface_default.xml - OpenCV
         face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
         self.img = self.imgmsg_to_cv2(msg)
         self.ref_img = self.imgmsg_to_cv2(msg)
         gray = cv2.cvtColor(self.img, cv2.COLOR_BGR2GRAY)
 
         self.ref_img = cv2.imread("ref-img.png")
+        # Converting RGB into gray_scale
         ref_gray = cv2.cvtColor(self.ref_img, cv2.COLOR_BGR2GRAY)
+        # Calling OpenCV & saving results
         faces = face_cascade.detectMultiScale(gray, 1.1, 4)
         ref_img = face_cascade.detectMultiScale(ref_gray, 1.1, 4)
         
@@ -54,17 +57,20 @@ class Tello(Node):
         for (x, y, w, h) in ref_img:
             cv2.rectangle(self.ref_img, (x, y), (x+w, y+h), (255, 0, 0), 2)
             self.ref_w = w
-
+            
+        # To calculate the distance from camera will follow
         ref_flength = (dist * self.ref_w) / width
         camera_dist = (ref_flength * width) / self.face_width
         cv2.putText(self.img, f"Distance: {round(camera_dist,2)} CM", (30, 35), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 3)
         cv2.putText(self.img, f"Face: {round(self.face_width,2)} PIXELS", (30, 75), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 3)
-
+        
+        # Adding real time face pixels into list
         self.face_pixels.append(self.face_width)
             
         cv2.imshow('img', self.img)
         cv2.waitKey(1)
         
+        # Drone will Slowly rotate if there is no face detected
         if self.face_pixels == "inf":
             tello.rotate_clockwise(90)
 
@@ -73,7 +79,7 @@ class Tello(Node):
         self.publisher_.publish(cmd_publish)
         
 
-
+    # Defining a function to convert cv2 frame readable for ROS2
     def imgmsg_to_cv2(self, img_msg):
 
         n_channels = len(img_msg.data) // (img_msg.height * img_msg.width)
